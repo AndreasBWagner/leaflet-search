@@ -32,6 +32,7 @@ L.Control.Search = L.Control.extend({
 		filterJSON: null,			//callback for filtering data to _recordsCache
 		minLength: 1,				//minimal text length for autocomplete
 		initial: true,				//search elements only by initial text
+		caseSensitive: false,			// Case sensitive search.
 		autoType: true,				//complete input with first suggested result and select this filled-in text.
 		delayType: 400,				//delay while typing for show tooltip
 		tooltipLimit: -1,			//limit max results to show in tooltip. -1 for no limit.
@@ -249,7 +250,12 @@ L.Control.Search = L.Control.extend({
 		{
 			tip = L.DomUtil.create('a', '');
 			tip.href = '#';
-			tip.innerHTML = text;
+			// FIXME: Handle case sensitivity according to user's preferences.
+			// FIXME: Allow the user to style the substring with css. Don't just use a <b>.
+			var record_prefix = text.substring(0,text.toUpperCase().indexOf(this._input.value.toUpperCase()));
+			var record_suffix = text.substring(this._input.value.length + record_prefix.length,text.length);
+			var record_substring = text.substring(record_prefix.length,this._input.value.length + record_prefix.length);
+			tip.innerHTML = (text != "undefined") ? record_prefix + '<b>' + record_substring + '</b>' + record_suffix : this._collapse();
 		}
 		
 		L.DomUtil.addClass(tip, 'search-tip');
@@ -321,11 +327,12 @@ L.Control.Search = L.Control.extend({
 	},
 
 	_filterRecords: function(text) {	//Filter this._recordsCache case insensitive and much more..
-	
+		//console.log('autoType disabled');
 		var regFilter = new RegExp("^[.]$|[\[\]|()*]",'g'),	//remove . * | ( ) ] [
 			text = text.replace(regFilter,''),	  //sanitize text
 			I = this.options.initial ? '^' : '',  //search only initial text
-			regSearch = new RegExp(I + text,'i'),
+			modifiers = this.options.caseSensitive ? '' : 'i',
+			regSearch = new RegExp(I + text,modifiers),
 			//TODO add option for case sesitive search, also showLocation
 			frecords = {};
 
@@ -428,22 +435,25 @@ L.Control.Search = L.Control.extend({
 			firstRecord = this._tooltip.getElementsByClassName('search-tip')[0].text,
 			end = firstRecord.length;
 			
-		this._input.value = firstRecord;
-		this._handleAutoresize();
+
+		if (RegExp('^' + this._input.value,this.options.caseSensitive ? '' : 'i').test(firstRecord.substr(0,start))) {
+			this._input.value = firstRecord;
+			this._handleAutoresize();
 		
-		if (this._input.createTextRange) {
-			var selRange = this._input.createTextRange();
-			selRange.collapse(true);
-			selRange.moveStart('character', start);
-			selRange.moveEnd('character', end);
-			selRange.select();
-		}
-		else if(this._input.setSelectionRange) {
-			this._input.setSelectionRange(start, end);
-		}
-		else if(this._input.selectionStart) {
-			this._input.selectionStart = start;
-			this._input.selectionEnd = end;
+			if (this._input.createTextRange) {
+				var selRange = this._input.createTextRange();
+				selRange.collapse(true);
+				selRange.moveStart('character', start);
+				selRange.moveEnd('character', end);
+				selRange.select();
+			}
+			else if(this._input.setSelectionRange) {
+				this._input.setSelectionRange(start, end);
+			}
+			else if(this._input.selectionStart) {
+				this._input.selectionStart = start;
+				this._input.selectionEnd = end;
+			}
 		}
 	},
 
