@@ -616,8 +616,13 @@ L.Control.Search = L.Control.extend({
 	//FIXME _handleAutoresize Should resize max search box size when map is resized.
 	_handleAutoresize: function() {	//autoresize this._input
 	//TODO refact _handleAutoresize now is not accurate
-		if(this.options.autoResize && (this._container.offsetWidth + 45 < this._map._container.offsetWidth))
-			this._input.size = this._input.value.length<this._inputMinSize ? this._inputMinSize : this._input.value.length;
+		var offset = this._input.offsetWidth - this._input.clientWidth;
+
+		if(this.options.autoResize && (this._container.offsetWidth + 45 < this._map._container.offsetWidth)) {
+			this._input.style.width = 'auto';
+			this._input.style.width = (this._input.scrollWidth + offset) + 'px';
+		//	this._input.size = this._input.value.length<this._inputMinSize ? this._inputMinSize : this._input.value.length;
+		}
 	},
 
 	_handleArrowSelect: function(velocity) {
